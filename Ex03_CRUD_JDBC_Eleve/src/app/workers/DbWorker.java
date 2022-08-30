@@ -23,8 +23,8 @@ public class DbWorker implements DbWorkerItf {
     @Override
     public void connecterBdMySQL(String nomDB) throws MyDBException {
         final String url_local = "jdbc:mysql://localhost:3306/" + nomDB;
-        final String url_remote = "jdbc:mysql://LAPEMFB37-21.edu.net.fr.ch:3306/" + nomDB;
-        final String user = "root";
+        final String url_remote = "jdbc:mysql://172.23.85.187:3306/" + nomDB;
+        final String user = "223";
         final String password = "emf123";
 
         System.out.println("url:" + url_remote);
@@ -72,22 +72,52 @@ public class DbWorker implements DbWorkerItf {
 
     public List<Personne> lirePersonnes() throws MyDBException {
         listePersonnes = new ArrayList<>();
-        
+         try {
+            Statement st = dbConnexion.createStatement();
+            ResultSet rs = st.executeQuery("select PK_PERS, Nom, Prenom,"
+                    + " Date_naissance, No_rue, Rue, NPA, Ville, Actif, Salaire,"
+                    + " date_modif from t_personne");
+            while (rs.next()) {
+                Personne current = new Personne(rs.getInt("PK_PERS"), 
+                        rs.getString("Nom"),
+                        rs.getString("Prenom"),
+                        rs.getDate("Date_naissance"),
+                        rs.getInt("No_rue"),
+                        rs.getString("Rue"),
+                        rs.getInt("NPA"),
+                        rs.getString("Ville"),
+                        rs.getBoolean("Actif"),
+                        rs.getDouble("Salaire"),
+                        rs.getDate("date_modif"));
+                listePersonnes.add(current);
+            }
+
+        } catch (SQLException e) {
+        }
         return listePersonnes;
     }
-
-    @Override
-    public Personne precedentPersonne() throws MyDBException {
-
-        return null;
-
+    
+    public void creer(Personne p){
+        
+        
+        listePersonnes.add(p);
+        
+    }
+    
+    public void effacer(Personne p){
+        listePersonnes.remove(p);
+    }
+    
+    public Personne lire(int num){
+        
+    }
+    
+    public void modifier(Personne p){
+        
     }
 
-    @Override
-    public Personne suivantPersonne() throws MyDBException {
-
-        return null;
-
-    }
+    
+    
+    
 
 }

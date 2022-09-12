@@ -2,6 +2,7 @@ package app.presentation;
 
 import app.beans.Personne;
 import app.exceptions.MyDBException;
+import app.helpers.DateTimeLib;
 import app.helpers.JfxPopup;
 import app.workers.DbWorker;
 import java.net.URL;
@@ -16,6 +17,7 @@ import javafx.scene.control.DatePicker;
 import java.io.File;
 import app.workers.DbWorkerItf;
 import app.workers.PersonneManager;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,184 +29,225 @@ import javafx.application.Platform;
  */
 public class MainCtrl implements Initializable {
 
-  // DBs à tester
-  private enum TypesDB {
-    MYSQL, HSQLDB, ACCESS
-  };
+    // DBs à tester
+    private enum TypesDB {
+        MYSQL, HSQLDB, ACCESS
+    };
 
-  // DB par défaut
-  final static private TypesDB DB_TYPE = TypesDB.MYSQL;
+    // DB par défaut
+    final static private TypesDB DB_TYPE = TypesDB.MYSQL;
 
-  private PersonneManager persWrk;
-  private DbWorker dbWrk;
-  private boolean modeAjout;
+    private PersonneManager persWrk;
+    private DbWorker dbWrk;
+    private boolean modeAjout;
+    private LocalDate datee;
+    private DateTimeLib dates = new DateTimeLib();
 
-  @FXML
-  private TextField txtNom;
-  @FXML
-  private TextField txtPrenom;
-  @FXML
-  private TextField txtPK;
-  @FXML
-  private TextField txtNo;
-  @FXML
-  private TextField txtRue;
-  @FXML
-  private TextField txtNPA;
-  @FXML
-  private TextField txtLocalite;
-  @FXML
-  private TextField txtSalaire;
-  @FXML
-  private CheckBox ckbActif;
-  @FXML
-  private Button btnDebut;
-  @FXML
-  private Button btnPrevious;
-  @FXML
-  private Button btnNext;
-  @FXML
-  private Button btnEnd;
-  @FXML
-  private Button btnSauver;
-  @FXML
-  private Button btnAnnuler;
-  @FXML
-  private DatePicker dateNaissance;  
+    @FXML
+    private TextField txtNom;
+    @FXML
+    private TextField txtPrenom;
+    @FXML
+    private TextField txtPK;
+    @FXML
+    private TextField txtNo;
+    @FXML
+    private TextField txtRue;
+    @FXML
+    private TextField txtNPA;
+    @FXML
+    private TextField txtLocalite;
+    @FXML
+    private TextField txtSalaire;
+    @FXML
+    private CheckBox ckbActif;
+    @FXML
+    private Button btnDebut;
+    @FXML
+    private Button btnPrevious;
+    @FXML
+    private Button btnNext;
+    @FXML
+    private Button btnEnd;
+    @FXML
+    private Button btnSauver;
+    @FXML
+    private Button btnAnnuler;
+    @FXML
+    private DatePicker dateNaissance;
 
-  /*
+    /*
    * METHODES NECESSAIRES A LA VUE
-   */
-  @Override
-  public void initialize(URL url, ResourceBundle rb) {
-    persWrk = new PersonneManager();
-    ouvrirDB();
-    
-  }
+     */
+    @Override
+    public void initialize(URL url, ResourceBundle rb) {
+        persWrk = new PersonneManager();
+        dbWrk = new DbWorker();
+        ouvrirDB();
 
-  @FXML
-  public void actionPrevious(ActionEvent event) {
-    try {
-      afficherPersonne(persWrk.precedentPersonne());
-    } catch (MyDBException ex) {
-      JfxPopup.displayError("ERREUR", "Une erreur s'est produite", ex.getMessage());
     }
-  }
 
-  @FXML
-  public void actionNext(ActionEvent event) {
-    try {
-      afficherPersonne(persWrk.suivantPersonne());
-    } catch (MyDBException ex) {
-      JfxPopup.displayError("ERREUR", "Une erreur s'est produite", ex.getMessage());
+    @FXML
+    public void actionPrevious(ActionEvent event) {
+        afficherPersonne(persWrk.precedentPersonne());
     }
-  }
-  
-  @FXML
-  private void actionEnd(ActionEvent event) {
-  }
 
-  @FXML
-  private void debut(ActionEvent event) {
-  }
-
-  @FXML
-  private void menuAjouter(ActionEvent event) {
-  }
-  
-
-  @FXML
-  private void menuModifier(ActionEvent event) {
-  }
-
-  @FXML
-  private void menuEffacer(ActionEvent event) {
-
-  }
-
-  @FXML
-  private void menuQuitter(ActionEvent event) {
-  }
-
-  @FXML
-  private void annulerPersonne(ActionEvent event) {
-  }
-
-  @FXML
-  private void sauverPersonne(ActionEvent event) {
-
-  }
-
-  public void quitter() {
-    try {
-      dbWrk.deconnecter(); // ne pas oublier !!!
-    } catch (MyDBException ex) {
-      System.out.println(ex.getMessage());
+    @FXML
+    public void actionNext(ActionEvent event) {
+        afficherPersonne(persWrk.suivantPersonne());
     }
-    Platform.exit();
-  }
 
-  /*
+    @FXML
+    private void actionEnd(ActionEvent event) {
+        afficherPersonne(persWrk.finPersonne());
+
+    }
+
+    @FXML
+    private void debut(ActionEvent event) {
+        afficherPersonne(persWrk.debutPersonne());
+
+    }
+
+    @FXML
+    private void menuAjouter(ActionEvent event) {
+        effacerContenuChamps();
+        modeAjout = true;
+        rendreVisibleBoutonsDepl(false);
+        
+    }
+
+    @FXML
+    private void menuModifier(ActionEvent event) {
+        modeAjout = false;
+        rendreVisibleBoutonsDepl(false);
+        
+
+    }
+
+    @FXML
+    private void menuEffacer(ActionEvent event) {
+        rendreVisibleBoutonsDepl(false);
+        try {
+            dbWrk.effacer(persWrk.courantPersonne());
+        persWrk.setPersonnes(dbWrk.lirePersonnes());
+            afficherPersonne(persWrk.courantPersonne());
+        } catch (MyDBException e) {
+            
+        }
+        
+
+    }
+
+    @FXML
+    private void menuQuitter(ActionEvent event) {
+        quitter();
+        
+    }
+
+    @FXML
+    private void annulerPersonne(ActionEvent event) {
+
+    }
+
+    @FXML
+    private void sauverPersonne(ActionEvent event) {
+        datee = LocalDate.now();
+        
+            Personne p = new Personne(Integer.valueOf(txtPK.getText()),txtNom.getText(),
+                    txtPrenom.getText(),
+                    dates.localDateToDate(dateNaissance.getValue()),
+                    Integer.valueOf(txtNo.getText()),
+                    txtRue.getText(),
+                    Integer.valueOf(txtNPA.getText()),
+                    txtLocalite.getText(),
+                    ckbActif.isSelected(),
+                    Double.valueOf(txtSalaire.getText()),
+                    dates.localDateToDate(datee));
+            if (modeAjout) {
+            dbWrk.creer(p);
+        } else {
+                dbWrk.modifier(p);
+            }
+            afficherPersonne(persWrk.debutPersonne());
+            rendreVisibleBoutonsDepl(false);
+            
+    }
+
+    public void quitter() {
+        try {
+            dbWrk.deconnecter(); // ne pas oublier !!!
+        } catch (MyDBException ex) {
+            System.out.println(ex.getMessage());
+        }
+        Platform.exit();
+    }
+
+    /*
    * METHODES PRIVEES 
-   */
-  private void afficherPersonne(Personne p) {
-    if (p != null) {
-      txtPrenom.setText(p.getPrenom());
-      txtNom.setText(p.getNom());
-      txtLocalite.setText(p.getLocalite());
-      txtNPA.setText(p.getNpa()+"");
-      txtNo.setText(p.getNoRue()+"");
-      txtPK.setText(p.getPkPers()+"");
-      txtRue.setText(p.getRue());
-      txtSalaire.setText(p.getSalaire()+"");
-      Date date = new Date();
-      date = p.getDateNaissance();
-      dateNaissance.setValue(p.getDateNaissance());
+     */
+    private void afficherPersonne(Personne p) {
+        if (p != null) {
+            txtPrenom.setText(p.getPrenom());
+            txtNom.setText(p.getNom());
+            txtLocalite.setText(p.getLocalite());
+            txtNPA.setText(p.getNpa() + "");
+            txtNo.setText(p.getNoRue() + "");
+            txtPK.setText(p.getPkPers() + "");
+            txtRue.setText(p.getRue());
+            txtSalaire.setText(p.getSalaire() + "");
+            if (p.isActif()) {
+                ckbActif.setSelected(true);
+            } else {
+                ckbActif.setSelected(false);
+            }
+            dateNaissance.setValue(dates.dateToLocalDate(p.getDateNaissance()));
+        }
     }
-  }
 
-  private void ouvrirDB() {
-    try {
-      switch (DB_TYPE) {
-        case MYSQL:
-          dbWrk.connecterBdMySQL("223_personne_1table");
-          break;
-        case HSQLDB:
-          dbWrk.connecterBdHSQLDB("../data" + File.separator + "223_personne_1table");
-          break;
-        case ACCESS:
-          dbWrk.connecterBdAccess("../data" + File.separator + "223_Personne_1table.accdb");
-          break;
-        default:
-          System.out.println("Base de données pas définie");
-      }
-      System.out.println("------- DB OK ----------");
-      afficherPersonne(persWrk.precedentPersonne());
-    } catch (MyDBException ex) {
-      JfxPopup.displayError("ERREUR", "Une erreur s'est produite", ex.getMessage());
-      System.exit(1);
+    private void ouvrirDB() {
+        try {
+            switch (DB_TYPE) {
+                case MYSQL:
+                    dbWrk.connecterBdMySQL("223_personne_1table");
+                    break;
+                case HSQLDB:
+                    dbWrk.connecterBdHSQLDB("../data" + File.separator + "223_personne_1table");
+                    break;
+                case ACCESS:
+                    dbWrk.connecterBdAccess("../data" + File.separator + "223_Personne_1table.accdb");
+                    break;
+                default:
+                    System.out.println("Base de données pas définie");
+            }
+            System.out.println("------- DB OK ----------");
+            afficherPersonne(persWrk.setPersonnes(dbWrk.lirePersonnes()));
+            //;
+        } catch (MyDBException ex) {
+            JfxPopup.displayError("ERREUR", "Une erreur s'est produite", ex.getMessage());
+            System.exit(1);
+        }
     }
-  }
-  
+
     private void rendreVisibleBoutonsDepl(boolean b) {
-    btnDebut.setVisible(b);
-    btnPrevious.setVisible(b);
-    btnNext.setVisible(b);
-    btnEnd.setVisible(b);
-    btnAnnuler.setVisible(!b);
-    btnSauver.setVisible(!b);
-  }
+        btnDebut.setVisible(b);
+        btnPrevious.setVisible(b);
+        btnNext.setVisible(b);
+        btnEnd.setVisible(b);
+        btnAnnuler.setVisible(!b);
+        btnSauver.setVisible(!b);
+    }
 
-  private void effacerContenuChamps() {
-    txtNom.setText("");
-    txtPrenom.setText("");
-    txtPK.setText("");
-    txtNo.setText("");
-    txtRue.setText("");
-    txtNPA.setText("");
-    txtLocalite.setText("");
-    txtSalaire.setText("");
-    ckbActif.setSelected(false);
-  }
+    private void effacerContenuChamps() {
+        txtNom.setText("");
+        txtPrenom.setText("");
+        txtPK.setText("");
+        txtNo.setText("");
+        txtRue.setText("");
+        txtNPA.setText("");
+        txtLocalite.setText("");
+        txtSalaire.setText("");
+        ckbActif.setSelected(false);
+    }
 
 }
